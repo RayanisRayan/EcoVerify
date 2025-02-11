@@ -22,6 +22,7 @@ export default {
         caribian_green: "#00DF81",
         bangaladish_green: "#03624C",
         dark_green:"#031B1B",
+        verifycolor:"rgba(0, 0, 0, 0.56)"
       },
       fontFamily:{
         sans: ['var(--font-fira)']

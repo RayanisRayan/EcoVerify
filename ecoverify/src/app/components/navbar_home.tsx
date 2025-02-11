@@ -7,7 +7,7 @@ interface navbarProbs {
     names: string[];
   }
 export default function Navbar({names}:navbarProbs) {
-        const [activeIndex, setActiveIndex] = useState<number | null>(null);
+        const [activeIndex, setActiveIndex] = useState<number>(0);
         return (<div className="fixed top-0 w-full gap-[1rem] ml-[8.8125rem] flex items-start ">
             
              {names.map((name:string,i:number)=>(
