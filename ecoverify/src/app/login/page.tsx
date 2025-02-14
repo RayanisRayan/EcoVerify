@@ -16,6 +16,7 @@ export default function Home() {
             <p className="text-center text-caribian_green text-[0.7rem] font-normal font-['Fira Sans'] underline leading-[20.91px] hover:brightness-90">Forgot your password?</p>
       </div>
     </div>
+    {/* Background */}
     <div className=" fixed inset-0  bg-[#f2f3f4]  overflow-hidden flex ">
         <div className="absolute w-[1329px] h-[895px]  origin-top-left bg-gradient-to-b to-[#03624c] from-[#2cc295] rounded-tl-[10px] rounded-tr-[10px] rounded-bl-[10px] rounded-br-[309px] -translate-x-[915px] -translate-y-[30%] " />
         <Grid></Grid>
