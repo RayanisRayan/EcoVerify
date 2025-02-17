@@ -1,5 +1,5 @@
 import ComputeCard from "../components/computecard";
-
+import Notifications from "../components/notification";
 export default function Home() {
   const smComputes = [
     {
@@ -47,7 +47,7 @@ export default function Home() {
   ];
   return (
     // top table
-    <div className="flex flex-col mt-[9.5rem] gap-[3.2675rem] w-full">
+    <div className="flex flex-col mt-[10vh] gap-[3.2675rem] w-full">
       <div className="flex flex-row gap-[7.3125rem] justify-center">
         <ComputeCard
           size="md"
@@ -94,7 +94,7 @@ export default function Home() {
           ))}
         </div>
       </div>
-      <div className="flex justify-center gap-[25%]">
+      <div className="flex justify-center gap-[20%]">
         <div className="flex flex-col gap-[1.3rem] justify-center">
             <div className="text-black text-4xl font-semibold font-['Fira Sans'] leading-[41.83px] w-fit">
                     Set Notifications
@@ -108,11 +108,15 @@ export default function Home() {
                     <div className="text-black/50 text-[10.46px] font-normal font-sans leading-[0.87125rem]">ppm</div>
                 </div>
                 <div className="flex flex-col gap-[0.218125rem]">
-                    <p className="text-black text-xs font-medium font-sans leading-[17.43px]">Threshold Level</p>
-                    <input type="text" className="w-[25rem] h-8 px-[0.63rem] bg-white rounded-md border border-black/10 font-nomral font-sans leading-[1rem] placeholder:text-black/50 focus:outline-none focus:ring-1 focus:ring-black/20" placeholder="Enter CO2 Level"/>
-                    <div className="text-black/50 text-[10.46px] font-normal font-sans leading-[0.87125rem]">ppm</div>
+                    <p className="text-black text-xs font-medium font-sans leading-[17.43px]">Notification Frequency</p>
+                    <div className="flex gap-[0.4375rem]">
+                      <Notifications main="Hourly"/>
+                      <Notifications main="Daily"/>
+                      <Notifications main="Weekly"/>
+                    </div>
+                    <div className="text-black/50 text-[10.46px] font-normal font-sans leading-[0.87125rem]">Select frequency</div>
                 </div>
-                <input type="text" className="w-[25rem] h-8 px-[0.63rem] bg-white rounded-md border border-black/10 font-nomral font-sans leading-[1rem] placeholder:text-black/50 focus:outline-none focus:ring-1 focus:ring-black/20" placeholder="Enter CO2 Level"/>
+                <div className="bg-gradient-to-r from-[#032221] to-[#2cc295] rounded-[6.97px] w-fit p-3 text-center text-white font-semibold font-['Fira Sans'] leading-[20.91px] hover:brightness-90"><span className="mx-6">Save</span></div>
           </div>
       </div>
           
