@@ -1,0 +1,24 @@
+{
+    "user": {
+        "company": "",
+        "devices": [
+            {
+                "deviceID": "device1",
+                "location": ""
+            }
+        ],
+        "password": "test"
+    },
+    "recording": {
+        "metadata": {
+            "company": "TechCorp",
+            "location": "Factory A"
+        },
+        "timestamp": "2025-02-17T10:30:00Z",
+        "sensor_data": {
+            "temperature": 22.5,
+            "humidity": 60.2,
+            "pressure": 1013.1
+        }
+    }
+}
