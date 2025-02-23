@@ -14,10 +14,12 @@ export const authOptions = {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
       },
+      
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Missing email or password");
         }
+        console.log(credentials.password)
         console.log("111");
         let db;
         try {
@@ -64,7 +66,6 @@ export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
     signIn: "/login", // Redirect to a custom login page on failed login
-    error: "/error",
   },
 };
 

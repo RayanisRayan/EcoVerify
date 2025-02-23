@@ -1,6 +1,10 @@
+'use client';
 import ComputeCard from "../components/computecard";
 import Notifications from "../components/notification";
+import { signIn,useSession } from "next-auth/react";
 export default function Home() {
+  const { data: session, status } = useSession() 
+  console.log(session)
   const smComputes = [
     {
       header: "CO2 Level",
