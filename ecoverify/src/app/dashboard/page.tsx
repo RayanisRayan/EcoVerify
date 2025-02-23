@@ -1,22 +1,119 @@
-'use client';
+'use client'
 import ComputeCard from "../components/computecard";
 import Notifications from "../components/notification";
-import { signIn,useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { useState, useEffect } from "react";
+
+interface Recording {
+  timestamp: string;
+  metadata: {
+    company: string;
+    location: string;
+    uuid: string;
+  };
+  sensor_data: {
+    temperature: number;
+    humidity: number;
+  };
+}
+interface Device {
+  deviceID: string;
+  location: string;
+}
+async function getDevices(company: string): Promise<Device[]> {
+  try {
+    const response = await fetch(`/api/devices?company=${encodeURIComponent(company)}`, {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to fetch devices");
+    }
+
+    return data.devices;
+  } catch (error) {
+    console.error("Error fetching devices:", (error as Error).message);
+    return [];
+  }
+}
+async function getLatestRecording(company: string,device:string): Promise<any> {
+  try {
+    console.log("logging")
+    const response = await fetch(`/api/recording?company=${encodeURIComponent(company)}&device=${encodeURIComponent(device)}`, {
+      method: "GET",
+      credentials: "include", // Ensures authentication session is included
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to fetch data");
+    }
+
+    console.log("Latest Recording:", data);
+    return data.data;
+  } catch (error) {
+    console.error("Error fetching latest recording:", (error as Error).message);
+  }
+}
+
 export default function Home() {
-  const { data: session, status } = useSession() 
-  console.log(session)
+  const { data: session, status } = useSession();
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [recording, setRecording] = useState<Recording | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
+  useEffect(() => {
+    const fetchDevices = async () => {
+      if (session?.user?.name) {
+        const devicesList = await getDevices(session.user.name);
+        setDevices(devicesList);
+        if (devicesList.length > 0) {
+          setSelectedDevice(devicesList[0].deviceID); // Set the first device as default
+        }
+      }
+    };
+    fetchDevices();
+  }, [session?.user?.name]);
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      if (session?.user && session.user.name && selectedDevice) {
+        console.log("Fetching data for", session.user.name, "and device", selectedDevice);
+        const latestRecording = await getLatestRecording(session.user.name, selectedDevice);
+        if (latestRecording) {
+          setRecording(latestRecording);
+        }
+        else{
+          setRecording(null);
+        }
+      }
+    };
+  
+    fetchData(); // Initial fetch
+    const interval = setInterval(fetchData, 10000); // Polling every 10 seconds
+  
+    return () => clearInterval(interval); // Cleanup interval on unmount
+  }, [session?.user?.name, selectedDevice]); // Now includes `selectedDevice`
+
   const smComputes = [
     {
-      header: "CO2 Level",
+      header: "Tempreture",
       footer: "+10%",
-      main: "80%",
+      main: recording? `${recording.sensor_data.temperature}°C` : "--", // state value here
       increasing: true,
       width: "7.75rem",
     },
     {
-      header: "CO2 Level",
+      header: "Humdity",
       footer: "+10%",
-      main: "80%",
+      main: recording? `${recording.sensor_data.humidity*100} %`: "--", // state value here
       increasing: true,
       width: "7.75rem",
     },
@@ -52,6 +149,20 @@ export default function Home() {
   return (
     // top table
     <div className="flex flex-col mt-[10vh] gap-[3.2675rem] w-full">
+      <div className="flex justify-center">
+        <label className="text-lg font-semibold mr-2">Select Device:</label>
+        <select
+          className="border p-2 rounded-md"
+          value={selectedDevice || ""}
+          onChange={(e) => setSelectedDevice(e.target.value)}
+        >
+          {devices.map((device) => (
+            <option key={device.deviceID} value={device.deviceID}>
+              {device.deviceID} - {device.location}
+            </option>
+          ))}
+        </select>
+      </div>
       <div className="flex flex-row gap-[7.3125rem] justify-center">
         <ComputeCard
           size="md"

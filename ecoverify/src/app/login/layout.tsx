@@ -7,7 +7,6 @@ export default function sidebar({
   }) {
     return (
         <SessionProvider>
-
             {children}
         </SessionProvider>
        

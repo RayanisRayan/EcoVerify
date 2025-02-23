@@ -15,7 +15,6 @@ export default function sidebar({
             <SessionProvider>
             {children}
             </SessionProvider>
-
         </div>
        
     );

@@ -34,6 +34,7 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const company = searchParams.get('company');
+    const uuid = searchParams.get('device');
     if (!company) {
       return NextResponse.json({ error: 'Company name is required' }, { status: 400 });
     }
@@ -43,7 +44,7 @@ export async function GET(req: Request) {
     const collection = db.collection('Recording');
     
     const latestRecording = await collection
-      .find({ 'metadata.company': company })
+      .find({ 'metadata.company': company,'metadata.uuid':uuid })
       .sort({ timestamp: -1 })
       .limit(1)
       .toArray();
