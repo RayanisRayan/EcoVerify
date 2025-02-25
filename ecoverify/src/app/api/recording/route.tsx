@@ -23,9 +23,11 @@ export async function POST(req: Request, res: NextResponse) {
       }
 
       for (var item of data['data']) {
-
-        item['timestamp'] = new Date(item['timestamp']);
-
+        let date  = new Date(item['timestamp']);
+        date.setHours(date.getHours()+3);
+        item['timestamp'] = date;
+       
+        
 
       }
       let docsToInsert = []
