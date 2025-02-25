@@ -10,7 +10,7 @@ export default function sidebar({
     return (
         <div className="flex h-[100vh] ">
             <div className="md:min-w-[11.4375rem] md:max-w-[10%] md:min-h-full bg-gradient-to-b from-[#2cc295] to-[#03624c] flex flex-col pt-[9.5rem]">
-              <DashboardNavbar names={["Rayan","Muath"]}/>
+              <DashboardNavbar names={["Dashboard","Devices"]}/>
             </div>
             <SessionProvider>
             {children}

@@ -113,7 +113,7 @@ export default function Home() {
     {
       header: "Humdity",
       footer: "+10%",
-      main: recording? `${recording.sensor_data.humidity*100} %`: "--", // state value here
+      main: recording? `${(recording.sensor_data.humidity*100).toFixed(0)} %`: "--", // state value here
       increasing: true,
       width: "7.75rem",
     },
