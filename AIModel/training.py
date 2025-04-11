@@ -52,10 +52,16 @@ class TournamentModelSelection:
         self._define_models()
         
     def _load_data(self):
-        """Load the dataset from CSV file"""
+        """Load the dataset from CSV file, using the first column as index"""
         print("Loading data...")
-        self.data = pd.read_csv(self.data_path)
+        # Use index_col=0 to treat the first column as the index
+        self.data = pd.read_csv(self.data_path, index_col=0)
         print(f"Data loaded with shape: {self.data.shape}")
+        # Optional: Check if 'Unnamed: 0' is still somehow present and drop it
+        if "Unnamed: 0" in self.data.columns:
+             print("Warning: 'Unnamed: 0' column found even with index_col=0. Dropping it.")
+             self.data = self.data.drop(columns=["Unnamed: 0"])
+
         
     def _prepare_data(self):
         """Split data and scale features"""
