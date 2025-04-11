@@ -190,7 +190,7 @@ class TournamentModelSelection:
         
         # Return the top half of models
         top_half = int(np.ceil(len(sorted_models) / 2))
-        winners = {name: results[name]["model"] for name, results in sorted_models[:top_half]}
+        winners = {name: results_dict["model"] for name, results_dict in sorted_models[:top_half]}
         
         # Record the best model of this round
         best_model_name = sorted_models[0][0]
@@ -299,8 +299,8 @@ class TournamentModelSelection:
 # Usage example
 if __name__ == "__main__":
     tournament = TournamentModelSelection(
-        data_path="diesel_generator_data.csv",  # Replace with your dataset
-        target_column="co2_output",
+        data_path="gt_full.csv",  # Replace with your dataset
+        target_column="CO",
         tournament_rounds=3,
         tournament_data_fraction=0.3,
         primary_metric="rmse"

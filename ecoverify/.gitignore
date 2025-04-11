@@ -12,7 +12,8 @@
 
 # testing
 /coverage
-
+# Model Training:
+round*_
 # next.js
 /.next/
 /out/
