@@ -24,7 +24,7 @@ interface Recording {
     gas_res: number;
     nh3_raw: number;
     co_raw: number;
-    Tvoc: number;
+    TVOC: number;  // Database uses TVOC
     no2_raw: number;
   };
 }
@@ -42,7 +42,7 @@ interface PredictionRequest {
   gas_res: number;
   nh3_raw: number;
   co_raw: number;
-  Tvoc: number;
+  Tvoc: number;  // Flask server expects Tvoc
   no2_raw: number;
 }
 
@@ -103,6 +103,9 @@ async function getLatestRecording(
 
 async function getPrediction(sensorData: PredictionRequest): Promise<number | null> {
   try {
+    console.log('Making prediction request to:', process.env.NEXT_PUBLIC_FLASK_SERVER_URL);
+    console.log('Request data:', sensorData);
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_FLASK_SERVER_URL}/predict`, {
       method: 'POST',
       headers: {
@@ -111,15 +114,20 @@ async function getPrediction(sensorData: PredictionRequest): Promise<number | nu
       body: JSON.stringify(sensorData),
     });
 
+    console.log('Response status:', response.status);
+
     if (!response.ok) {
-      throw new Error('Prediction request failed');
+      const errorData = await response.text();
+      console.error('Server error response:', errorData);
+      throw new Error(`Prediction request failed: ${errorData}`);
     }
 
     const data = await response.json();
+    console.log('Prediction response:', data);
     return data.prediction;
   } catch (error) {
     console.error('Error getting prediction:', error);
-    return null;
+    throw error;
   }
 }
 
@@ -184,9 +192,11 @@ export default function Home() {
             gas_res: recording.sensor_data.gas_res,
             nh3_raw: recording.sensor_data.nh3_raw,
             co_raw: recording.sensor_data.co_raw,
-            Tvoc: recording.sensor_data.Tvoc,
+            Tvoc: recording.sensor_data.TVOC,  // Transform TVOC to Tvoc here
             no2_raw: recording.sensor_data.no2_raw,
           };
+
+          console.log('Sending prediction request:', predictionRequest);
 
           const predictionResult = await getPrediction(predictionRequest);
           setPrediction(predictionResult);
@@ -263,7 +273,7 @@ export default function Home() {
     {
       header: "TVOC",
       footer: "+10%",
-      main: recording ? `${recording.sensor_data.Tvoc} ppb` : "--",
+      main: recording ? `${recording.sensor_data.TVOC} ppb` : "--",
       increasing: true,
       width: "7.75rem",
     },
