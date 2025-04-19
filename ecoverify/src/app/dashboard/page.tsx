@@ -5,6 +5,10 @@ import Notifications from "../components/notification";
 import { useSession, signOut } from "next-auth/react";
 import { useState, useEffect } from "react";
 
+if (!process.env.NEXT_PUBLIC_FLASK_SERVER_URL) {
+  throw new Error('Flask server URL not configured');
+}
+
 interface Recording {
   timestamp: string;
   metadata: {
@@ -28,6 +32,18 @@ interface Recording {
 interface Device {
   deviceID: string;
   location: string;
+}
+
+interface PredictionRequest {
+  temp_ampent: number;
+  temp_object: number;
+  pressure: number;
+  humidity: number;
+  gas_res: number;
+  nh3_raw: number;
+  co_raw: number;
+  Tvoc: number;
+  no2_raw: number;
 }
 
 async function getDevices(company: string): Promise<Device[]> {
@@ -85,12 +101,37 @@ async function getLatestRecording(
   }
 }
 
+async function getPrediction(sensorData: PredictionRequest): Promise<number | null> {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_FLASK_SERVER_URL}/predict`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(sensorData),
+    });
+
+    if (!response.ok) {
+      throw new Error('Prediction request failed');
+    }
+
+    const data = await response.json();
+    return data.prediction;
+  } catch (error) {
+    console.error('Error getting prediction:', error);
+    return null;
+  }
+}
+
 export default function Home() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [devices, setDevices] = useState<Device[]>([]);
   const [recording, setRecording] = useState<Recording | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
+  const [prediction, setPrediction] = useState<number | null>(null);
+  const [predictionError, setPredictionError] = useState<string | null>(null);
+  const [isPredicting, setIsPredicting] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -128,6 +169,38 @@ export default function Home() {
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, [session?.user?.name, selectedDevice]);
+
+  useEffect(() => {
+    const fetchPrediction = async () => {
+      if (recording?.sensor_data) {
+        setIsPredicting(true);
+        setPredictionError(null);
+        try {
+          const predictionRequest: PredictionRequest = {
+            temp_ampent: recording.sensor_data.temp_ampent,
+            temp_object: recording.sensor_data.temp_object,
+            pressure: recording.sensor_data.pressure,
+            humidity: recording.sensor_data.humidity,
+            gas_res: recording.sensor_data.gas_res,
+            nh3_raw: recording.sensor_data.nh3_raw,
+            co_raw: recording.sensor_data.co_raw,
+            Tvoc: recording.sensor_data.Tvoc,
+            no2_raw: recording.sensor_data.no2_raw,
+          };
+
+          const predictionResult = await getPrediction(predictionRequest);
+          setPrediction(predictionResult);
+        } catch (error) {
+          console.error('Error in prediction:', error);
+          setPredictionError((error as Error).message);
+        } finally {
+          setIsPredicting(false);
+        }
+      }
+    };
+
+    fetchPrediction();
+  }, [recording]);
 
   if (status === "loading") {
     return <div>Loading...</div>;
@@ -245,28 +318,12 @@ export default function Home() {
         </select>
       </div>
 
-      <div className="flex flex-row gap-[7.3125rem] justify-center">
+      <div className="flex justify-center">
         <ComputeCard
           size="md"
-          header="CO2 Level"
-          footer={null}
-          main="450 ppm"
-          increasing={true}
-          width="16.25rem"
-        />
-        <ComputeCard
-          size="md"
-          header="CO2 Level"
-          footer={null}
-          main="450 ppm"
-          increasing={true}
-          width="16.25rem"
-        />
-        <ComputeCard
-          size="md"
-          header="CO2 Level"
-          footer={"skibidi"}
-          main="450 ppm"
+          header="Predicted CO2 Level"
+          footer={predictionError ? `Error: ${predictionError}` : null}
+          main={isPredicting ? "Calculating..." : (prediction ? `${prediction.toFixed(2)} ppm` : "--")}
           increasing={true}
           width="16.25rem"
         />

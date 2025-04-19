@@ -3,7 +3,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from flask import Flask, request, jsonify
-
+from flask_cors import CORS
 # --- Configuration ---
 MODEL_DIR = "models"
 MODEL_PATH = os.path.join(MODEL_DIR, "final_model.joblib")
@@ -24,7 +24,7 @@ EXPECTED_FEATURES = [
 
 # --- Initialize Flask App ---
 app = Flask(__name__)
-
+CORS(app)
 # --- Load Model and Scaler ---
 try:
     model = joblib.load(MODEL_PATH)
