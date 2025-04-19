@@ -9,19 +9,17 @@ MODEL_DIR = "models"
 MODEL_PATH = os.path.join(MODEL_DIR, "final_model.joblib")
 SCALER_PATH = os.path.join(MODEL_DIR, "scaler.joblib")
 
-# Define the expected feature columns in the correct order
-# (Based on the training data excluding the target 'CO')
+# Define the expected feature columns in the correct order (excluding 'co2')
 EXPECTED_FEATURES = [
-    "AT",
-    "AP",
-    "AH",
-    "AFDP",
-    "GTEP",
-    "TIT",
-    "TAT",
-    "TEY",
-    "CDP",
-    "NOX",
+    "temp_ampent",
+    "temp_object",
+    "pressure",
+    "humidity",
+    "gas_res",
+    "nh3_raw",
+    "co_raw",
+    "Tvoc",
+    "no2_raw"
 ]
 
 # --- Initialize Flask App ---
@@ -44,7 +42,6 @@ except Exception as e:
     print(f"An unexpected error occurred during loading: {e}")
     model = None
     scaler = None
-
 
 # --- Define Prediction Endpoint ---
 @app.route("/predict", methods=["POST"])
@@ -102,7 +99,6 @@ def predict():
         # Scale the input data using the loaded scaler
         input_scaled = scaler.transform(input_df)
     except Exception as e:
-        # This might happen if the number of features doesn't match scaler
         print(f"Error during scaling: {e}")
         return (
             jsonify(
@@ -117,7 +113,6 @@ def predict():
     # --- Prediction ---
     try:
         prediction = model.predict(input_scaled)
-        # prediction is likely a numpy array, get the scalar value
         output_prediction = prediction[0]
     except Exception as e:
         print(f"Error during prediction: {e}")
@@ -131,16 +126,9 @@ def predict():
     # --- Return Prediction ---
     return jsonify({"prediction": output_prediction})
 
-
 # --- Run the Flask App ---
 if __name__ == "__main__":
-    # Check if model/scaler loaded successfully before starting
     if model and scaler:
-        # Use host='0.0.0.0' to make it accessible on your network
-        # Use debug=True for development (auto-reloads on code changes)
-        # Remove debug=True for production
         app.run(host="0.0.0.0", port=5000, debug=True)
     else:
         print("Flask server not started due to loading errors.")
-
-

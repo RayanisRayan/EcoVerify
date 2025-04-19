@@ -1,7 +1,7 @@
 'use client'
+import { useRouter } from 'next/navigation';
 import ComputeCard from "../components/computecard";
 import Notifications from "../components/notification";
-// Import signOut
 import { useSession, signOut } from "next-auth/react";
 import { useState, useEffect } from "react";
 
@@ -13,14 +13,23 @@ interface Recording {
     uuid: string;
   };
   sensor_data: {
-    temperature: number;
+    temp_ampent: number;
+    temp_object: number;
+    pressure: number;
     humidity: number;
+    gas_res: number;
+    nh3_raw: number;
+    co_raw: number;
+    Tvoc: number;
+    no2_raw: number;
   };
 }
+
 interface Device {
   deviceID: string;
   location: string;
 }
+
 async function getDevices(company: string): Promise<Device[]> {
   try {
     const response = await fetch(
@@ -31,7 +40,7 @@ async function getDevices(company: string): Promise<Device[]> {
         headers: {
           "Content-Type": "application/json",
         },
-      },
+      }
     );
 
     const data = await response.json();
@@ -45,23 +54,23 @@ async function getDevices(company: string): Promise<Device[]> {
     return [];
   }
 }
+
 async function getLatestRecording(
   company: string,
-  device: string,
-): Promise<any> {
+  device: string
+): Promise<Recording | null> {
   try {
-    console.log("logging");
     const response = await fetch(
       `/api/recording?company=${encodeURIComponent(
-        company,
+        company
       )}&device=${encodeURIComponent(device)}`,
       {
         method: "GET",
-        credentials: "include", // Ensures authentication session is included
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
-      },
+      }
     );
 
     const data = await response.json();
@@ -69,25 +78,33 @@ async function getLatestRecording(
       throw new Error(data.error || "Failed to fetch data");
     }
 
-    console.log("Latest Recording:", data);
     return data.data;
   } catch (error) {
     console.error("Error fetching latest recording:", (error as Error).message);
+    return null;
   }
 }
 
 export default function Home() {
+  const router = useRouter();
   const { data: session, status } = useSession();
   const [devices, setDevices] = useState<Device[]>([]);
   const [recording, setRecording] = useState<Recording | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push('/login');
+    }
+  }, [status, router]);
+
   useEffect(() => {
     const fetchDevices = async () => {
       if (session?.user?.name) {
         const devicesList = await getDevices(session.user.name);
         setDevices(devicesList);
         if (devicesList.length > 0) {
-          setSelectedDevice(devicesList[0].deviceID); // Set the first device as default
+          setSelectedDevice(devicesList[0].deviceID);
         }
       }
     };
@@ -97,80 +114,97 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       if (session?.user && session.user.name && selectedDevice) {
-        console.log(
-          "Fetching data for",
-          session.user.name,
-          "and device",
-          selectedDevice,
-        );
         const latestRecording = await getLatestRecording(
           session.user.name,
-          selectedDevice,
+          selectedDevice
         );
         if (latestRecording) {
           setRecording(latestRecording);
-        } else {
-          setRecording(null);
         }
       }
     };
 
-    fetchData(); // Initial fetch
-    const interval = setInterval(fetchData, 10000); // Polling every 10 seconds
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
+  }, [session?.user?.name, selectedDevice]);
 
-    return () => clearInterval(interval); // Cleanup interval on unmount
-  }, [session?.user?.name, selectedDevice]); // Now includes `selectedDevice`
+  if (status === "loading") {
+    return <div>Loading...</div>;
+  }
+
+  if (status === "unauthenticated") {
+    return null;
+  }
 
   const smComputes = [
     {
-      header: "Tempreture",
+      header: "Temperature (Ambient)",
       footer: "+10%",
-      main: recording ? `${recording.sensor_data.temperature}°C` : "--", // state value here
+      main: recording ? `${recording.sensor_data.temp_ampent}°C` : "--",
       increasing: true,
       width: "7.75rem",
     },
     {
-      header: "Humdity",
+      header: "Temperature (Object)",
       footer: "+10%",
-      main: recording
-        ? `${(recording.sensor_data.humidity * 100).toFixed(0)} %`
-        : "--", // state value here
+      main: recording ? `${recording.sensor_data.temp_object}°C` : "--",
       increasing: true,
       width: "7.75rem",
     },
     {
-      header: "CO2 Level",
+      header: "Pressure",
       footer: "+10%",
-      main: "80%",
+      main: recording ? `${recording.sensor_data.pressure} hPa` : "--",
       increasing: true,
       width: "7.75rem",
     },
     {
-      header: "CO2 Level",
+      header: "Humidity",
       footer: "+10%",
-      main: "80%",
+      main: recording ? `${recording.sensor_data.humidity}%` : "--",
       increasing: true,
       width: "7.75rem",
     },
     {
-      header: "CO2 Level",
+      header: "Gas Resistance",
       footer: "+10%",
-      main: "80%",
+      main: recording ? `${recording.sensor_data.gas_res} Ω` : "--",
       increasing: true,
       width: "7.75rem",
     },
     {
-      header: "CO2 Level",
+      header: "NH3",
       footer: "+10%",
-      main: "80%",
+      main: recording ? `${recording.sensor_data.nh3_raw} ppm` : "--",
+      increasing: true,
+      width: "7.75rem",
+    },
+    {
+      header: "CO",
+      footer: "+10%",
+      main: recording ? `${recording.sensor_data.co_raw} ppm` : "--",
+      increasing: true,
+      width: "7.75rem",
+    },
+    {
+      header: "TVOC",
+      footer: "+10%",
+      main: recording ? `${recording.sensor_data.Tvoc} ppb` : "--",
+      increasing: true,
+      width: "7.75rem",
+    },
+    {
+      header: "NO2",
+      footer: "+10%",
+      main: recording ? `${recording.sensor_data.no2_raw} ppm` : "--",
       increasing: true,
       width: "7.75rem",
     },
   ];
+
   return (
-    // Add relative positioning to the container if needed for absolute child
     <div className="relative flex flex-col mt-[10vh] gap-[3.2675rem] w-full pb-10">
-      {/* Sign out button */}
       {status === "authenticated" && (
         <button
           onClick={() => signOut()}
@@ -210,6 +244,7 @@ export default function Home() {
           )}
         </select>
       </div>
+
       <div className="flex flex-row gap-[7.3125rem] justify-center">
         <ComputeCard
           size="md"
@@ -236,17 +271,16 @@ export default function Home() {
           width="16.25rem"
         />
       </div>
+
       <div className="flex gap-[5.4375rem] justify-center">
-        {/* main graph */}
         <div className="w-[501px] h-[306px]">
           <div className="w-[306.76px] h-[27.26px] text-black text-lg font-semibold font-['Fira_Sans']">
             Carbon Emissions Per Month KT
           </div>
           <img src="/image.png" alt="Carbon Emissions Graph" />
         </div>
-        {/* other variables (temp, humedity, etc) */}
         <div className="flex flex-col gap-[1.6875rem] mt-[2.090625rem]">
-          {[0, 1].map((row) => (
+          {[0, 1, 2].map((row) => (
             <div
               key={row}
               className="flex flex-row gap-[1.6875rem] flex-nowrap"
@@ -258,6 +292,7 @@ export default function Home() {
           ))}
         </div>
       </div>
+
       <div className="flex justify-center gap-[20%]">
         <div className="flex flex-col gap-[1.3rem] justify-center">
           <div className="text-black text-4xl font-semibold font-['Fira_Sans'] leading-[41.83px] w-fit">

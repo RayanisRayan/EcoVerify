@@ -61,7 +61,9 @@ class TournamentModelSelection:
         if "Unnamed: 0" in self.data.columns:
              print("Warning: 'Unnamed: 0' column found even with index_col=0. Dropping it.")
              self.data = self.data.drop(columns=["Unnamed: 0"])
-
+        if "timestamp" in self.data.columns:
+             print("Warning: 'Unnamed: 0' column found even with index_col=0. Dropping it.")
+             self.data = self.data.drop(columns=["timestamp"])
         
     def _prepare_data(self):
         """Split data and scale features"""
@@ -305,8 +307,8 @@ class TournamentModelSelection:
 # Usage example
 if __name__ == "__main__":
     tournament = TournamentModelSelection(
-        data_path="gt_full.csv",  # Replace with your dataset
-        target_column="CO",
+        data_path="sensor_data_log.csv",  # Replace with your dataset
+        target_column="co2",
         tournament_rounds=3,
         tournament_data_fraction=0.3,
         primary_metric="rmse"
