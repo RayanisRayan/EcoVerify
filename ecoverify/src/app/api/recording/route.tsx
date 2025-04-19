@@ -48,6 +48,8 @@ export async function POST(req: Request, res: NextResponse) {
             "nh3_raw":item['nh3_raw'],
             "co_raw":item['co_raw'],
             "no2_raw":item['no2_raw'],
+            "TVOC":item['TVOC'],
+
           },
           'timestamp':item['timestamp']
         })
