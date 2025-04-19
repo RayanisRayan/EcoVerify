@@ -24,7 +24,6 @@ export async function POST(req: Request, res: NextResponse) {
 
       for (var item of data['data']) {
         let date  = new Date(item['timestamp']);
-        date.setHours(date.getHours()+3);
         item['timestamp'] = date;
        
         
@@ -41,8 +40,14 @@ export async function POST(req: Request, res: NextResponse) {
             'uuid':data['uuid']
           },
           'sensor_data' :{
-            "temperature":item['temperature'],
-            "humidity":item['humidity']/100
+            "temp_ampent":item['temp_ampent'],
+            "temp_object":item['temp_ampent'],
+            "pressure":item['pressure'],
+            "humidity":item['humidity'],
+            "gas_res":item['gas_res'],
+            "nh3_raw":item['nh3_raw'],
+            "co_raw":item['co_raw'],
+            "no2_raw":item['no2_raw'],
           },
           'timestamp':item['timestamp']
         })
