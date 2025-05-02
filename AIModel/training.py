@@ -64,9 +64,7 @@ class TournamentModelSelection:
         if "timestamp" in self.data.columns:
              print("Warning: 'Unnamed: 0' column found even with index_col=0. Dropping it.")
              self.data = self.data.drop(columns=["timestamp"])
-        if "tvoc" in self.data.columns:
-             print("Warning: 'Unnamed: 0' column found even with index_col=0. Dropping it.")
-             self.data = self.data.drop(columns=["tvoc"])
+
          
     def _prepare_data(self):
         """Split data and scale features"""

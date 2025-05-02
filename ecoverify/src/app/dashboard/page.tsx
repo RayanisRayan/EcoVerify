@@ -1,9 +1,31 @@
-'use client'
+'use client';
 import { useRouter } from 'next/navigation';
 import ComputeCard from "../components/computecard";
 import Notifications from "../components/notification";
 import { useSession, signOut } from "next-auth/react";
 import { useState, useEffect } from "react";
+import { Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend,
+  TimeScale,
+} from "chart.js";
+import "chartjs-adapter-date-fns";
+
+ChartJS.register(
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend,
+  TimeScale
+);
 
 if (!process.env.NEXT_PUBLIC_FLASK_SERVER_URL) {
   throw new Error('Flask server URL not configured');
@@ -24,7 +46,7 @@ interface Recording {
     gas_res: number;
     nh3_raw: number;
     co_raw: number;
-    TVOC: number;  // Database uses TVOC
+    TVOC: number;
     no2_raw: number;
   };
 }
@@ -42,8 +64,26 @@ interface PredictionRequest {
   gas_res: number;
   nh3_raw: number;
   co_raw: number;
-  Tvoc: number;  // Flask server expects Tvoc
+  Tvoc: number;
   no2_raw: number;
+}
+
+const sensorFields = [
+  { value: "timestamp", label: "Timestamp" },
+  { value: "temp_ampent", label: "Temperature (Ambient)" },
+  { value: "temp_object", label: "Temperature (Object)" },
+  { value: "pressure", label: "Pressure" },
+  { value: "humidity", label: "Humidity" },
+  { value: "gas_res", label: "Gas Resistance" },
+  { value: "nh3_raw", label: "NH3" },
+  { value: "co_raw", label: "CO" },
+  { value: "TVOC", label: "TVOC" },
+  { value: "no2_raw", label: "NO2" },
+];
+
+function getFieldValue(record: Recording, field: string) {
+  if (field === "timestamp") return record.timestamp;
+  return record.sensor_data[field as keyof typeof record.sensor_data];
 }
 
 async function getDevices(company: string): Promise<Device[]> {
@@ -101,11 +141,35 @@ async function getLatestRecording(
   }
 }
 
+async function getHistoricalRecordings(
+  company: string,
+  device: string,
+  limit: number = 10
+): Promise<Recording[]> {
+  try {
+    const response = await fetch(
+      `/api/recording/history?company=${encodeURIComponent(company)}&device=${encodeURIComponent(device)}&limit=${limit}`,
+      {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to fetch historical data");
+    }
+    return data.data;
+  } catch (error) {
+    console.error("Error fetching historical data:", (error as Error).message);
+    return [];
+  }
+}
+
 async function getPrediction(sensorData: PredictionRequest): Promise<number | null> {
   try {
-    console.log('Making prediction request to:', process.env.NEXT_PUBLIC_FLASK_SERVER_URL);
-    console.log('Request data:', sensorData);
-
     const response = await fetch(`${process.env.NEXT_PUBLIC_FLASK_SERVER_URL}/predict`, {
       method: 'POST',
       headers: {
@@ -114,16 +178,12 @@ async function getPrediction(sensorData: PredictionRequest): Promise<number | nu
       body: JSON.stringify(sensorData),
     });
 
-    console.log('Response status:', response.status);
-
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Server error response:', errorData);
       throw new Error(`Prediction request failed: ${errorData}`);
     }
 
     const data = await response.json();
-    console.log('Prediction response:', data);
     return data.prediction;
   } catch (error) {
     console.error('Error getting prediction:', error);
@@ -140,6 +200,11 @@ export default function Home() {
   const [prediction, setPrediction] = useState<number | null>(null);
   const [predictionError, setPredictionError] = useState<string | null>(null);
   const [isPredicting, setIsPredicting] = useState(false);
+
+  // Historical data state
+  const [historicalData, setHistoricalData] = useState<Recording[]>([]);
+  const [xField, setXField] = useState<string>("timestamp");
+  const [yField, setYField] = useState<string>("temp_ampent");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -192,16 +257,13 @@ export default function Home() {
             gas_res: recording.sensor_data.gas_res,
             nh3_raw: recording.sensor_data.nh3_raw,
             co_raw: recording.sensor_data.co_raw,
-            Tvoc: recording.sensor_data.TVOC,  // Transform TVOC to Tvoc here
+            Tvoc: recording.sensor_data.TVOC,
             no2_raw: recording.sensor_data.no2_raw,
           };
-
-          console.log('Sending prediction request:', predictionRequest);
 
           const predictionResult = await getPrediction(predictionRequest);
           setPrediction(predictionResult);
         } catch (error) {
-          console.error('Error in prediction:', error);
           setPredictionError((error as Error).message);
         } finally {
           setIsPredicting(false);
@@ -211,6 +273,17 @@ export default function Home() {
 
     fetchPrediction();
   }, [recording]);
+
+  // Fetch historical data when device changes
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (session?.user && session.user.name && selectedDevice) {
+        const history = await getHistoricalRecordings(session.user.name, selectedDevice, 10);
+        setHistoricalData(history);
+      }
+    };
+    fetchHistory();
+  }, [session?.user?.name, selectedDevice]);
 
   if (status === "loading") {
     return <div>Loading...</div>;
@@ -342,9 +415,72 @@ export default function Home() {
       <div className="flex gap-[5.4375rem] justify-center">
         <div className="w-[501px] h-[306px]">
           <div className="w-[306.76px] h-[27.26px] text-black text-lg font-semibold font-['Fira_Sans']">
-            Carbon Emissions Per Month KT
+            Historical Data analysis
           </div>
-          <img src="/image.png" alt="Carbon Emissions Graph" />
+          <div className="flex gap-2 mb-2">
+            <label>
+              X:
+              <select
+                value={xField}
+                onChange={(e) => setXField(e.target.value)}
+                className="ml-1 mr-4 border rounded px-1"
+              >
+                {sensorFields.map((f) => (
+                  <option key={f.value} value={f.value}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Y:
+              <select
+                value={yField}
+                onChange={(e) => setYField(e.target.value)}
+                className="ml-1 border rounded px-1"
+              >
+                {sensorFields
+                  .filter((f) => f.value !== xField)
+                  .map((f) => (
+                    <option key={f.value} value={f.value}>
+                      {f.label}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          </div>
+          <div style={{ height: 250 }}>
+            <Line
+              data={{
+                labels: historicalData.map((rec) => getFieldValue(rec, xField)),
+                datasets: [
+                  {
+                    label: `${yField} vs ${xField}`,
+                    data: historicalData.map((rec) => getFieldValue(rec, yField)),
+                    fill: false,
+                    borderColor: "#2cc295",
+                    backgroundColor: "#2cc295",
+                  },
+                ],
+              }}
+              options={{
+                responsive: true,
+                plugins: {
+                  legend: { display: false },
+                  tooltip: { enabled: true },
+                },
+                scales: {
+                  x: {
+                    type: xField === "timestamp" ? "time" : "category",
+                    title: { display: true, text: sensorFields.find(f => f.value === xField)?.label },
+                  },
+                  y: {
+                    title: { display: true, text: sensorFields.find(f => f.value === yField)?.label },
+                  },
+                },
+              }}
+            />
+          </div>
         </div>
         <div className="flex flex-col gap-[1.6875rem] mt-[2.090625rem]">
           {[0, 1, 2].map((row) => (
