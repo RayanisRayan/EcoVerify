@@ -41,7 +41,7 @@ export async function POST(req: Request, res: NextResponse) {
           },
           'sensor_data' :{
             "temp_ampent":item['temp_ampent'],
-            "temp_object":item['temp_ampent'],
+            "temp_object":item['temp_object'],
             "pressure":item['pressure'],
             "humidity":item['humidity'],
             "gas_res":item['gas_res'],
